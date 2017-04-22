@@ -1,0 +1,183 @@
+For all screens, check if all fields are filled.
+
+
+LOGIN
+1) Check if username exists. SELECT COUNT(*) FROM USER WHERE USERNAME = $usernamevariable;
+If not, throw error [UI]. If resulting table non-empty:
+	a) check password for that username. SELECT PASSWORD FROM USER WHERE USERNAME = $usernamevariable;
+If not correct, throw error [UI].
+		a) if correct:
+			SELECT TYPEOFUSER FROM USER WHERE USERNAME = "$username";
+			a) return type of user to the UI. Then UI switches to new screen accordingly [UI].
+
+
+REGISTER
+1) Check if username unique. If not unique, insertion into database will automatically be denied (PK),
+so just check for error from query result.
+2) Check if email unique. If not unique, insertion into database will automatically be denied (UNIQUE CLAUSE),
+so just check for error from query result.
+3) Check if password and confirm password match [UI].
+4) If TYPEOFUSER selected == "CITY OFFICIAL" [UI]
+	a) check if city, state, title != NULL. None can be null.
+	b) check if city, state combo unique (automatically checked because PK)
+	c) SELECT CITY WHERE STATE = "$state" returns list of all corresponding cities. 
+		Populate drop-down list with cities accordingly.
+5) Query: 
+	a) If Admin
+			INSERT INTO USER (USERNAME, EMAIL, PASSWORD, TYPEOFUSER) 
+				VALUES ($username, $email, $password, "ADMIN");
+	b) If City Scientist
+			INSERT INTO USER (USERNAME, EMAIL, PASSWORD, TYPEOFUSER) 
+				VALUES ($username, $email, $password, "CITYSCIENTIST");
+	c) If City Official
+			INSERT INTO USER (USERNAME, EMAIL, PASSWORD, TYPEOFUSER) 
+				VALUES ($username, $email, $password, "CITYOFFICIAL");
+
+			INSERT INTO CITYOFFICIAL (USERNAME, TITLE, ISAPPROVED, CITY, STATE) 
+				VALUES ($username, $title, $isapproved, $city, $state);
+
+
+DATA POINT
+1) Check if data value is integer
+2) Populate drop-down for POI Location:
+	SELECT POILOCNAME FROM DATAPOINT;
+3) Populate drop-down for DATA TYPE:
+	SELECT TYPE FROM DATAPOINT;
+4) INSERT INTO DATAPOINT (DATETIME, TYPE, DATAVALUE, POILOCNAME, ISACCEPTED)
+	VALUES ($datetime, $type, $data, $poilocname, NULL);
+
+
+POI LOCATION
+1) check if city, state combo unique (automatically checked because PK)
+	SELECT CITY WHERE STATE = "$state" returns list of all corresponding cities.
+		a) Populate drop-down list with cities accordingly.
+2) INSERT INTO POI (POILOCNAME, ISFLAGGED, ZIPCODE, DATEFLAGGED, CITY, STATE)
+	VALUES ($poilocname, NULL, $zipcode, NULL, $city, $state);
+
+
+ADMIN (ACCEPT/REJECT DataPoint)
+1) Sorting MUST be enabled in the UI.
+2) Populate table -> SELECT * FROM DATAPOINT WHERE ISACCEPTED = NULL;
+3) ACCEPT BUTTON: UPDATE ISACCEPTED wherever there is a check mark with query below:
+	a) UPDATE DATAPOINT SET ISACCEPTED = TRUE WHERE POILOCNAME = $poilocname;
+4) REJECT BUTTON: UPDATE ISACCEPTED wherever there is a check mark with query below:
+	a) UPDATE DATAPOINT SET ISACCEPTED = FALSE WHERE POILOCNAME = $poilocname;
+
+
+ADMIN (ACCEPT/REJECT CITYOFFICIAL)
+1) Populate table -> SELECT * FROM CITYOFFICIAL WHERE ISAPPROVED = NULL;
+2) ACCEPT BUTTON: UPDATE ISAPPROVED wherever there is a check mark with query below:
+	a) UPDATE CITYOFFICIAL SET ISAPPROVED = TRUE WHERE USERNAME = $username;
+3) REJECT BUTTON: UPDATE ISAPPROVED wherever there is a check mark with query below:
+	a) UPDATE DATAPOINT SET ISAPPROVED= FALSE WHERE USERNAME = $username;
+
+
+
+CITY OFFICIAL (Filter/Search POI)
+1) default type for each field in the UI must be "Not Selected"
+2) Write 5 if statements, each corresponding to different combinations of search filters
+	specified.
+	a) CASE I no filters:
+		SELECT * FROM POI;
+	b) CASE II  all filters:
+		SELECT * FROM POI
+		WHERE POILOCNAME = $poilocname AND ISFLAGGED = $isFlagged
+		AND ZIPCODE = $zipcode AND DATEFLAGGED = $DATEFLAGGED
+		AND CITY = $city AND STATE = $state;
+	c) CASE III 1,2,3, or 4 filters:
+		Write 5 IF statements, each corresponding to 1 filter selected. Do Natural join
+		between results when more than 1 filter is selected
+		SELECT * FROM POI WHERE POILOCNAME = $POILOCNAME;
+		SELECT * FROM POI WHERE CITY = $CITY;
+        SELECT * FROM POI WHERE STATE = $STATE;
+        SELECT * FROM POI WHERE ZIPCODE = $ZIPCODE;
+        SELECT * FROM POI WHERE ISFLAGGED = $ISFLAGGED;
+        SELECT * FROM POI WHERE DATEFLAGGED = $DATEFLAGGED;
+    Natural Join Query:
+    SELECT POI, POI 
+
+*whatever the user clicks on the results from the View POIs screen,
+display on the POI Detail screen
+*display the name of the clicked-on "POI Location: georgia tech" on the top of the POI Detail GUI
+
+
+
+CITY OFFICIAL (POI Detail)
+1) Sorting in UI by datetime.
+2) Populate drop-down for type with:
+	SELECT TYPE, DATAVALUE, DATETIME FROM DATAPOINT
+	WHERE POILocName = "$var$"
+	* flag/radiobutton/checkbox on top of the POI Detail page must be clickable.
+	When clicked-on it must flag POI's isFlagged attribute (using UPDATE below)'
+3) Display table queries accoridng to filters applied and POILOCNAME
+	a) CASE I: No filter
+		SELECT TYPE, DATAVALUE, DATETIME FROM DATAPOINT
+		WHERE POILOCNAME = $poilocname;
+
+	b) CASE II: all filters
+		SELECT TYPE, DATAVALUE, DATETIME FROM DATAPOINT
+		WHERE POILOCNAME = $poilocname
+		AND TYPE = $type
+		AND DATAVALUE BETWEEN $startval AND $endval
+		AND DATETIME BETWEEN $date1 AND $date2;
+
+	c) CASE III: TYPE filter
+		SELECT TYPE, DATAVALUE, DATETIME FROM DATAPOINT
+		WHERE POILOCNAME = $poilocname
+		AND TYPE = $type;
+
+	d) CASE IV: datavalue filter
+    SELECT TYPE, DATAVALUE, DATETIME FROM DATAPOINT
+		WHERE POILOCNAME = $poilocname
+		AND DATAVALUE BETWEEN $startval AND $endval;
+
+	e) CASE V: datetime filter
+	SELECT TYPE, DATAVALUE, DATETIME FROM DATAPOINT
+		WHERE POILOCNAME = $poilocname
+		AND DATETIME BETWEEN $date1 AND $date2;
+
+	f) CASE VI: datetime and datavalue filter
+	SELECT TYPE, DATAVALUE, DATETIME FROM DATAPOINT
+		WHERE POILOCNAME = $poilocname
+		AND (DATETIME BETWEEN $date1 AND $date2) 
+		AND (DATAVALUE BETWEEN $startval AND $endval);
+
+	g) CASE VII: datetime and type filter
+	SELECT TYPE, DATAVALUE, DATETIME FROM DATAPOINT
+		WHERE POILOCNAME = $poilocname
+		AND (DATETIME BETWEEN $date1 AND $date2) 
+		AND TYPE = $type;
+
+	h) CASE VIII: datavalue and type filter
+	SELECT TYPE, DATAVALUE, DATETIME FROM DATAPOINT
+		WHERE POILOCNAME = $poilocname
+		AND TYPE = $type
+		AND (DATAVALUE BETWEEN $startval AND $endval);
+
+3) If the flag button is clicked OR if a checkbox is checked:
+   UPDATE POI SET ISFLAGGED = "$var" WHERE POILocName = "$var"
+
+CITY OFFICIAL (Report)
+1) Join between tables: POI, DataPoint
+
+SELECT x.POILOCNAME, x.CITY, x.STATE, x.MoldMin,
+	x.MoldAvg, x.MoldMax, y.AQMin, y.AQAvg, y.AQMax, 
+	SUM(x.Count,y.Count) AS "# of Data Points", z.ISFLAGGED AS "isFlagged"
+	FROM 
+		(SELECT POILOCNAME, CITY, STATE, MIN(DATAVALUE) AS "MoldMin", AVG(DATAVALUE)
+		AS "MoldAvg", MAX(DATAVALUE) AS "MoldMax", COUNT(*) AS "Count"
+		FROM POI, DATAPOINT
+		WHERE TYPE = "Mold"
+		GROUP BY POILOCNAME) 
+	AS x,  
+		(SELECT POILOCNAME, MIN(DATAVALUE) AS "AQMin", AVG(DATAVALUE)
+		AS "AQAvg", MAX(DATAVALUE) AS "AQMax", COUNT(*) AS "Count"
+		FROM POI, DATAPOINT
+		WHERE TYPE = "Air Quality"
+		GROUP BY POILOCNAME)
+	AS y,
+		(SELECT ISFLAGGED, POILOCNAME
+			FROM POI
+		)
+	AS z
+	WHERE x.POILOCNAME = y.POILOCNAME = z.POILOCNAME;
