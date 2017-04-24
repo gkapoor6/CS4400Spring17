@@ -49,7 +49,7 @@ DATA POINT
 
 POI LOCATION
 1) check if city, state combo unique (automatically checked because PK)
-	SELECT CITY WHERE STATE = "$state" returns list of all corresponding cities.
+	SELECT CITY WHERE STATE = "$state"; returns list of all corresponding cities.
 		a) Populate drop-down list with cities accordingly.
 2) INSERT INTO POI (POILOCNAME, ISFLAGGED, ZIPCODE, DATEFLAGGED, CITY, STATE)
 	VALUES ($poilocname, NULL, $zipcode, NULL, $city, $state);
@@ -106,7 +106,7 @@ CITY OFFICIAL (POI Detail)
 1) Sorting in UI by datetime.
 2) Populate drop-down for type with:
 	SELECT TYPE, DATAVALUE, DATETIME FROM DATAPOINT
-	WHERE POILocName = "$var$"
+	WHERE POILocName = "$var$";
 	* flag/radiobutton/checkbox on top of the POI Detail page must be clickable.
 	When clicked-on it must flag POI's isFlagged attribute (using UPDATE below)'
 3) Display table queries accoridng to filters applied and POILOCNAME
@@ -155,7 +155,7 @@ CITY OFFICIAL (POI Detail)
 		AND (DATAVALUE BETWEEN $startval AND $endval);
 
 3) If the flag button is clicked OR if a checkbox is checked:
-   UPDATE POI SET ISFLAGGED = "$var" WHERE POILocName = "$var"
+   UPDATE POI SET ISFLAGGED = "$var" WHERE POILocName = "$var";
 
 CITY OFFICIAL (Report)
 1) Join between tables: POI, DataPoint
